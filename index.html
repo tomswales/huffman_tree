@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Huffman Tree</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.6/react.js"></script>
+    		<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.6/react-dom.js"></script>
+    		<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.js"></script>
+		<link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
+	</head>
+
+	<body>
+		<div id="content"></div>
+
+		<script type="text/babel">
+			// letter frequencies from Wikipedia plus space (" ") assigned 0.2 arbitrarily
+			const freqs = [{symbol: "a", frequency: 0.08167}, {symbol: "b", frequency: 0.01492}, 
+			{symbol: "c", frequency: 0.02782}, {symbol: "d", frequency: 0.04253}, 
+			{symbol: "e", frequency: 0.12702}, {symbol: "f", frequency: 0.02228}, 
+			{symbol: "g", frequency: 0.02015}, {symbol: "h", frequency: 0.06094}, 
+			{symbol: "i", frequency: 0.06966}, {symbol: "j", frequency: 0.00153}, 
+			{symbol: "k", frequency: 0.00772}, {symbol: "l", frequency: 0.04025}, 
+			{symbol: "m", frequency: 0.02406}, {symbol: "n", frequency: 0.06749},
+			{symbol: "o", frequency: 0.07507}, {symbol: "p", frequency: 0.01929}, 
+			{symbol: "q", frequency: 0.00095}, {symbol: "r", frequency: 0.05987}, 
+			{symbol: "s", frequency: 0.06327}, {symbol: "t", frequency: 0.09056}, 
+			{symbol: "u", frequency: 0.02758}, {symbol: "v", frequency: 0.00978},
+			{symbol: "w", frequency: 0.02360}, {symbol: "x", frequency: 0.00150}, 
+			{symbol: "y", frequency: 0.01974}, {symbol: "z", frequency: 0.00074},
+			{symbol: " ", frequency: 0.2}];
+			
+			// Using letter frequencies, encode a Huffman tree
+			function buildTree(freqArray) {
+				if (freqArray == null || freqArray == undefined || freqArray.length == 0) {
+					throw new Error("Invalid frequency array");
+				}
+				
+				// sort the frequency array in ascending order
+				let sortedArray = sortFrequencyArray(freqArray);
+				
+				// now encode the frequencies into Huffman tree
+				while (sortedArray.length > 1) {
+					const newFrequency = sortedArray[sortedArray.length-1].frequency + sortedArray[sortedArray.length-2].frequency;
+					const newSymbol = sortedArray[sortedArray.length-1].symbol + sortedArray[sortedArray.length-2].symbol;
+					const left = {
+						frequency: sortedArray[sortedArray.length-1].frequency, 
+						symbol: sortedArray[sortedArray.length-1].symbol, 
+						left: (sortedArray[sortedArray.length-1].left || null), 
+						right: (sortedArray[sortedArray.length-1].right || null)
+					};
+					const right = {
+						frequency: sortedArray[sortedArray.length-2].frequency, 
+						symbol: sortedArray[sortedArray.length-2].symbol, 
+						left: (sortedArray[sortedArray.length-2].left || null), 
+						right: (sortedArray[sortedArray.length-2].right || null)}; 
+					let newObject = {
+						frequency: newFrequency, 
+						symbol: newSymbol, 
+						left: left, 
+						right: right};
+					sortedArray = processUpdateToArray(sortedArray, newObject);
+				}
+				
+				// return the single remaining entry in the frequency array, which now contains the Huffman tree
+				return sortedArray[0];			
+			}
+			
+			// Sort a frequency object array by the frequency attribute in decreasing order
+			function sortFrequencyArray (freqArray) {
+				return freqArray.concat([]).sort((a, b) => {return b.frequency - a.frequency});
+			}
+
+			// Combine lowest two objects into a new object, add it to the array, and sort in decreasing order
+			function processUpdateToArray (freqArray, newObject) {
+				return freqArray.concat([]).slice(0, freqArray.length-2).concat([newObject]).sort((a, b) => {return b.frequency - a.frequency});
+			}
+			
+			// Encode a string into binary using a Huffman tree
+			function encode(inputString, tree) {
+				let result = "";
+				inputString.split("").forEach((char) => {result += getLetterCode(char, tree)});
+				return result;
+			}
+			
+			// calls a recursive helper method
+			function getLetterCode(char, tree) {
+				let string = "";
+				return getLetterCodeRecursively(char, tree, string);
+			}
+			
+			// searches the tree recursively for the symbol match, recording the path through the branches as 1's and 0's
+			function getLetterCodeRecursively (char, tree, string) {
+				if (char == tree.symbol) {
+					return string;
+				}
+				else if (tree.left && (tree.left.symbol.includes(char))) {
+					string += "0";
+					return getLetterCodeRecursively (char, tree.left, string);
+				}
+				else if (tree.right && (tree.right.symbol.includes(char))) {
+					string += "1";
+					return getLetterCodeRecursively (char, tree.right, string);
+				}
+				else {
+					return "";
+				}
+			}
+
+			// Decode an encoded string using a Huffman tree
+			function decode(encodedString, tree) {
+				let result = "";
+				let codeArray = encodedString.split("");
+				let counter = 0;
+				while (counter < codeArray.length) {
+					let output = getFirstMatchingLetter(codeArray, tree, counter);
+					result += output.text;
+					counter = output.counter;
+				}
+				return result;
+			}
+			
+			// Recursively search the tree for a 'leaf' node, incrementing a counter. Returns the letter and the counter when found
+			function getFirstMatchingLetter(codeArray, tree, counter) {
+				if (codeArray.length ==0 || !codeArray) {
+					return {text: "", counter: counter};
+				}
+				else {
+					if (tree.symbol.length == 1) {
+						return {text: tree.symbol, counter: counter};
+					}
+					else {
+						if (codeArray[counter] == "0") {
+							counter++;
+							return getFirstMatchingLetter(codeArray, tree.left, counter);
+						}
+						else {
+							counter++;
+							return getFirstMatchingLetter(codeArray, tree.right, counter);
+						}
+					}
+				}
+			}
+			
+			// Constructs a tree to be used for encoding and decoding
+			const thisTree = buildTree(freqs);
+			
+			// A recursive React component that 
+			let Tree = React.createClass({
+				render() {
+					let left;
+					if (this.props.tree.left) {
+						left = <Tree tree={this.props.tree.left}/>;
+					}
+					let right;
+					if (this.props.tree.right) {
+						right = <Tree tree={this.props.tree.right}/>;
+					}
+					return (
+						<div className="container">
+							<p>{this.props.tree.symbol} {this.props.tree.frequency.toFixed(2)}</p>
+							<div className="inline-flex">
+							{left}
+							{right}
+							</div>
+						</div>
+					)
+				}
+			});
+			
+			// A React component laying out the structure of the app
+			let AppContainer = React.createClass({
+				getInitialState() {
+					return {stringInput: "", encodedOutput: "", codeInput: "", decodedOutput: ""};
+				},
+				render() {
+					let frequencyList = freqs.map((item, index) => <span key={index}>{item.symbol}: {item.frequency}, </span>);
+					let statistics;
+					if(this.state.encodedOutput) {
+						statistics = (<div>
+							<p className="long-string"><strong>Output: </strong>{this.state.encodedOutput}</p>
+							<p><strong>Length of unencoded string: </strong>{this.state.stringInput.length}</p>
+							<p><strong>Number of bits required for unencoded string (assuming 5 per character): </strong>{this.state.stringInput.length * 5}</p>
+							<p><strong>Number of bits in encoded string: </strong>{this.state.encodedOutput.length}</p>
+							<p><strong>Efficiency saving: </strong>{(1 - (this.state.encodedOutput.length / (this.state.stringInput.length * 5))).toFixed(2)}</p>
+						</div>)
+					}
+					let decodedResult;
+					if(this.state.decodedOutput) {
+						decodedResult = <p className="long-string"><strong>Decoded output: </strong>{this.state.decodedOutput}</p>;
+					}
+					return (
+						<div className="flex-body">
+							<h3>Huffman Tree</h3>
+							<p>Huffman encoding allows you to compress a message by taking advantage of the fact that some symbols
+								in the message are more likely than others. By encoding the more frequent symbols with shorter codes, 
+								the overall size of the coded message can be reduced, without losing any information.</p>
+							<hr/>
+							<p>Frequencies (Wikipedia): {frequencyList}</p>
+							<div className="overflow-container">
+								<Tree tree={this.props.tree}/>
+							</div>
+							<hr/>
+							<div>
+								<label htmlFor="input">Enter a sentence in <i>lower-case</i> letters <i>with spaces</i>, but <i>no other punctuation</i></label>
+								<br/>
+								<input id="input" 
+									placeholder="Your input" 
+									value={this.state.stringInput || ""}
+									onChange={this.handleStringInputChange}>
+								</input>
+								<br/>
+								{statistics}
+							</div>
+							<hr/>
+							<div>
+								<label htmlFor="input">You can copy and paste a binary code string here to check that it works</label>
+								<br/>
+								<input id="input" 
+									placeholder="Your code input" 
+									value={this.state.codeInput || ""}
+									onChange={this.handleCodeInputChange}>
+								</input>
+								<br/>
+								{decodedResult}
+							</div>
+						</div>
+					);
+				},
+
+				handleStringInputChange(event) {
+					this.setState({stringInput: event.target.value, encodedOutput: encode(event.target.value, thisTree)});
+				},
+
+				handleCodeInputChange(event) {
+					this.setState({codeInput: event.target.value, decodedOutput: decode(event.target.value, thisTree)});
+				}
+			});
+
+			ReactDOM.render(<AppContainer tree={thisTree}/>, document.getElementById("content"));
+		</script>
+
+		<style>
+			body {
+				font-family: 'Lato', sans-serif;
+				max-width: 100vw;
+			}
+			p {
+				margin-top: 2px;
+				margin-bottom: 2px;
+			}
+
+			.flex-body {
+				display: flex;
+				flex-direction: column;
+			}
+
+			.overflow-container {
+				width: 100%;
+				overflow: scroll;
+				display: flex;
+			}
+			.container {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 1px;
+				border: 1px solid black;
+				margin: 1px;
+			}
+			.long-string {
+				word-wrap: break-word;
+			}
+			.inline-flex {
+				width: auto;
+				display: flex;
+				flex-direction: row;
+				text-overflow: ellipsis;
+			}
+		</style>
+	</body>
+</html>
+
