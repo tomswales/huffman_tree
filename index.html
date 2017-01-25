@@ -199,7 +199,7 @@
 								<Tree tree={this.props.tree}/>
 							</div>
 							<hr/>
-							<div>
+							<div className="formatted-input">
 								<label htmlFor="input">Enter a sentence in <i>lower-case</i> letters <i>with spaces</i>, but <i>no other punctuation</i></label>
 								<br/>
 								<input id="input" 
@@ -211,7 +211,7 @@
 								{statistics}
 							</div>
 							<hr/>
-							<div>
+							<div className="formatted-input">
 								<label htmlFor="input">You can copy and paste a binary code string here to check that it works</label>
 								<br/>
 								<input id="input" 
@@ -246,6 +246,11 @@
 			p {
 				margin-top: 2px;
 				margin-bottom: 2px;
+				font-size: 1em;
+			}
+
+			.formatted-input {
+				font-size: 1em;
 			}
 
 			.flex-body {
